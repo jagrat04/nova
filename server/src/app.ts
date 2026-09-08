@@ -22,7 +22,11 @@ export function createApp() {
       origin(origin, callback) {
         // Same-origin and non-browser callers (curl, health checks) send no Origin header.
         if (!origin || env.clientOrigins.includes(origin)) return callback(null, true);
-        callback(new Error(`Origin ${origin} is not allowed by CORS`));
+        // Reject by withholding the CORS headers rather than throwing: the browser
+        // blocks the response either way, and throwing here would surface an
+        // unfamiliar origin as a 500 in the logs. CORS is a browser policy, not
+        // this server's authorization layer - that is what requireAuth is for.
+        callback(null, false);
       },
       credentials: true,
     }),
