@@ -1,9 +1,36 @@
+# Dependencies
 node_modules/
+
+# Build output
 dist/
 build/
+*.tsbuildinfo
+
+# Environment files - every variant is secret except the committed examples.
+# The negations must stay after the patterns above them.
 .env
-.env.local
+.env.*
+*.local
+!.env.example
+!*.env.example
+
+# Logs
 *.log
-.DS_Store
-.vercel
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Test / coverage output
 coverage/
+
+# Platform CLIs
+.vercel
+
+# Editors
+.idea/
+.vscode/
+
+# OS cruft (this repo lives under OneDrive, which drops desktop.ini files)
+.DS_Store
+Thumbs.db
+desktop.ini
