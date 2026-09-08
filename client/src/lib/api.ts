@@ -39,6 +39,18 @@ async function request<T>(path: string, { body, headers, ...options }: Options =
 
   if (response.status === 204) return undefined as T;
 
+  // A misconfigured VITE_API_URL points the client at its own origin, where the
+  // host's SPA fallback answers with HTML and a 200. Say so, rather than letting
+  // an empty object flow through as if the request had succeeded.
+  const contentType = response.headers.get("content-type") ?? "";
+  if (!contentType.includes("application/json")) {
+    throw new ApiError(
+      response.status,
+      `Expected JSON from ${BASE_URL}${path} but received "${contentType || "no content type"}". ` +
+        `Check that the API base URL is correct${BASE_URL === "/api" ? " (VITE_API_URL is not set)" : ""}.`,
+    );
+  }
+
   const payload = await response.json().catch(() => ({}));
 
   if (!response.ok) {
