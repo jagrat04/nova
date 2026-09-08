@@ -163,7 +163,8 @@ npm run build          # Type-check and build both halves for production
 
 | Variable | Required | Description |
 |---|---|---|
-| `DATABASE_URL` | yes | PostgreSQL connection string |
+| `DATABASE_URL` | yes | PostgreSQL connection string the app queries through (pooled in production) |
+| `DIRECT_URL` | yes | Direct (unpooled) connection used only by `prisma migrate`. Same value as `DATABASE_URL` locally |
 | `JWT_SECRET` | yes | Secret used to sign session tokens |
 | `JWT_EXPIRES_IN` | no | Token lifetime, default `7d` |
 | `PORT` | no | API port, default `4000` |
@@ -342,8 +343,15 @@ URL at build time — then come back and tell the API about the client's origin.
 **0. Push the repo to GitHub.** Both Render and Vercel deploy from a repository.
 
 **1. Database — Neon**
-1. Create a project at [neon.tech](https://neon.tech).
-2. Copy the **pooled** connection string; keep `?sslmode=require` on the end.
+1. Create a project at [neon.tech](https://neon.tech). The default database is called
+   `neondb` — use it, there is no need to create one named `nova`.
+2. From the **Connect** panel copy two strings, both ending in `?sslmode=require`:
+   - **pooled** (host contains `-pooler`) → becomes `DATABASE_URL`
+   - **direct** (same host without `-pooler`) → becomes `DIRECT_URL`
+
+Migrations need the direct one: Neon's pooler is PgBouncer in transaction mode and
+cannot hold the advisory locks `prisma migrate` takes. `schema.prisma` wires this up
+with `directUrl`, so the app pools its queries while migrations bypass the pooler.
 
 **2. API — Render** (`render.yaml` is included as a blueprint)
 
@@ -360,7 +368,8 @@ Environment variables:
 
 | Key | Value |
 |---|---|
-| `DATABASE_URL` | the Neon string |
+| `DATABASE_URL` | the Neon **pooled** string (host has `-pooler`) |
+| `DIRECT_URL` | the Neon **direct** string (same host, no `-pooler`) |
 | `JWT_SECRET` | any long random string (the blueprint generates one) |
 | `CLIENT_ORIGIN` | `http://localhost:5173` for now — updated in step 4 |
 | `NODE_ENV` | `production` |
@@ -392,7 +401,7 @@ the browser blocks every API call.
 **5. Seed the hosted database** if you want the demo data:
 
 ```bash
-DATABASE_URL="<neon url>" npm --prefix server run seed
+DATABASE_URL="<neon pooled url>" DIRECT_URL="<neon direct url>" npm --prefix server run seed
 ```
 
 **Free-tier behaviour.** Render's free web services sleep after ~15 minutes idle, so

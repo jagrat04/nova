@@ -7,6 +7,9 @@ services:
     runtime: node
     rootDir: server
     plan: free
+    # Match the Neon database's region (ap-southeast-1) — a US default would put
+    # the Pacific between the API and its database on every query.
+    region: singapore
     # --include=dev is required: NODE_ENV=production below would otherwise make
     # npm ci skip typescript, tsx and the prisma CLI, which the build needs.
     buildCommand: npm ci --include=dev && npm run build && npx prisma migrate deploy
@@ -15,7 +18,11 @@ services:
     envVars:
       - key: NODE_ENV
         value: production
+      # Pooled connection (Neon host contains "-pooler") used by the running app.
       - key: DATABASE_URL
+        sync: false
+      # Direct connection (same host without "-pooler") used by prisma migrate.
+      - key: DIRECT_URL
         sync: false
       - key: JWT_SECRET
         generateValue: true

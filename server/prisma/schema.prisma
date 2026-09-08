@@ -7,7 +7,12 @@ generator client {
 
 datasource db {
   provider = "postgresql"
+  // Runtime queries go through the pooled connection.
   url      = env("DATABASE_URL")
+  // Migrations need a direct connection: Neon's pooler is PgBouncer in transaction
+  // mode, which cannot hold the advisory locks migrations take. Locally both point
+  // at the same server.
+  directUrl = env("DIRECT_URL")
 }
 
 enum Role {
